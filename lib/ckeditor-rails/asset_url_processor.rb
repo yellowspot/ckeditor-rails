@@ -1,6 +1,13 @@
 module Ckeditor
   module Rails
     # Rewrites urls in CSS files with the digested paths
+    #
+    # Runs first over the data (see Engine), so it sees the original relative
+    # `url()` from CKEditor's stylesheets. Use compute_asset_path rather than
+    # asset_path: this processor has to relocate the reference into ckeditor's
+    # own tree, and asset_path prepends config.asset_host, which would put an
+    # absolute url underneath the prefix. sprockets-rails' AssetUrlProcessor
+    # runs afterwards and prepends the host to the finished path.
     class AssetUrlProcessor
       REGEX = /url\(\s*["']?(?!(?:\#|data|http))([^"'\s)]+)\s*["']?\)/
 
@@ -22,7 +29,7 @@ module Ckeditor
         matched_folders = input[:filename].match(/\/ckeditor\/(plugins|skins)\/([\w-]+)\//)
 
         data = input[:data].gsub(REGEX) { |_match|
-          raw_asset_path = context.asset_path($1)
+          raw_asset_path = context.compute_asset_path($1)
           if raw_asset_path.starts_with?(path_prefix)
             "url(#{raw_asset_path})"
           elsif matched_folders
